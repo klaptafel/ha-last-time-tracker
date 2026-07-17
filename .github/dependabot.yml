@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # No third-party Python requirements (manifest.json's requirements is
+  # empty, this integration only uses HA core + the stdlib) -- just keep
+  # the GitHub Actions themselves up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,0 +1,189 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add topic",
+        "description": "Add a new topic to track.",
+        "data": {
+          "name": "Name",
+          "icon": "Icon"
+        },
+        "data_description": {
+          "name": "A short label for this topic, e.g. 'Replace toothbrush'.",
+          "icon": "Icon shown on the device card."
+        }
+      }
+    },
+    "error": {
+      "name_required": "Name cannot be empty."
+    },
+    "abort": {
+      "already_configured": "A topic with this name already exists."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure topic",
+        "description": "What would you like to do?",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "topic": {
+        "title": "Edit name & icon",
+        "data": {
+          "name": "Name",
+          "icon": "Icon"
+        },
+        "data_description": {
+          "name": "Rename this topic.",
+          "icon": "Change the icon shown on the device card."
+        }
+      },
+      "history": {
+        "title": "Manage history",
+        "description": "Add, edit, or delete individual events.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "history_add": {
+        "title": "Add event",
+        "data": {
+          "datetime": "Date & time",
+          "note": "Note"
+        }
+      },
+      "history_edit": {
+        "title": "Edit event \u2014 select event",
+        "data": {
+          "event_id": "Event"
+        }
+      },
+      "history_edit_form": {
+        "title": "Edit event",
+        "data": {
+          "datetime": "Date & time",
+          "note": "Note"
+        }
+      },
+      "history_delete": {
+        "title": "Delete event \u2014 select event",
+        "data": {
+          "event_id": "Event"
+        }
+      },
+      "history_delete_confirm": {
+        "title": "Confirm deletion",
+        "description": "Are you sure you want to delete **{event_label}**? This cannot be undone.",
+        "data": {
+          "confirm": "Yes, delete this event"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Name cannot be empty."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "days_ago": {
+        "name": "Days ago"
+      },
+      "avg_interval": {
+        "name": "Median interval"
+      },
+      "predicted_next": {
+        "name": "Predicted next"
+      },
+      "last_time": {
+        "name": "Last time"
+      }
+    },
+    "button": {
+      "log_now": {
+        "name": "Log now"
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_entity": {
+      "message": "No Last Time Tracker topic found for this entity."
+    },
+    "unknown_device": {
+      "message": "No Last Time Tracker topic found for this device."
+    },
+    "no_topics_configured": {
+      "message": "No Last Time Tracker topics are configured yet."
+    },
+    "topic_already_exists": {
+      "message": "A topic with this name already exists."
+    },
+    "event_not_found": {
+      "message": "The specified event was not found in this topic's history."
+    }
+  },
+  "services": {
+    "log_event": {
+      "name": "Log event",
+      "description": "Log a new event for a Last Time Tracker topic.",
+      "fields": {
+        "note": {
+          "name": "Note",
+          "description": "Optional note to attach to this event."
+        },
+        "date": {
+          "name": "Date & time",
+          "description": "Date and time of the event. Defaults to now if omitted."
+        }
+      }
+    },
+    "delete_last_event": {
+      "name": "Delete last event",
+      "description": "Removes the most recent logged event for a Last Time Tracker topic."
+    },
+    "add_topic": {
+      "name": "Add topic",
+      "description": "Create a new Last Time Tracker topic.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "The name of the new topic, e.g. 'Replace toothbrush'."
+        },
+        "icon": {
+          "name": "Icon",
+          "description": "Optional icon for the topic. Defaults to mdi:clock-check."
+        }
+      }
+    },
+    "edit_event": {
+      "name": "Edit event",
+      "description": "Edit an existing event by its UUID.",
+      "fields": {
+        "event_id": {
+          "name": "Event ID",
+          "description": "The UUID of the event to edit (visible in history attributes)."
+        },
+        "date": {
+          "name": "Date & time",
+          "description": "New date and time for the event."
+        },
+        "note": {
+          "name": "Note",
+          "description": "New note for the event."
+        }
+      }
+    },
+    "delete_event": {
+      "name": "Delete event",
+      "description": "Delete a specific event by its UUID.",
+      "fields": {
+        "event_id": {
+          "name": "Event ID",
+          "description": "The UUID of the event to delete (visible in history attributes)."
+        }
+      }
+    }
+  }
+}

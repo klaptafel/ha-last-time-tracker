@@ -1,0 +1,70 @@
+add_topic:
+  fields:
+    name:
+      required: true
+      selector:
+        text:
+    icon:
+      required: false
+      selector:
+        icon:
+          placeholder: mdi:clock-check
+
+log_event:
+  target:
+    entity:
+      domain: sensor
+      integration: last_time_tracker
+    device:
+      integration: last_time_tracker
+  fields:
+    note:
+      required: false
+      selector:
+        text:
+    date:
+      required: false
+      selector:
+        datetime:
+
+delete_last_event:
+  target:
+    entity:
+      domain: sensor
+      integration: last_time_tracker
+    device:
+      integration: last_time_tracker
+
+edit_event:
+  target:
+    entity:
+      domain: sensor
+      integration: last_time_tracker
+    device:
+      integration: last_time_tracker
+  fields:
+    event_id:
+      required: true
+      selector:
+        text:
+    date:
+      required: false
+      selector:
+        datetime:
+    note:
+      required: false
+      selector:
+        text:
+
+delete_event:
+  target:
+    entity:
+      domain: sensor
+      integration: last_time_tracker
+    device:
+      integration: last_time_tracker
+  fields:
+    event_id:
+      required: true
+      selector:
+        text:

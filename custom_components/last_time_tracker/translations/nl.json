@@ -1,0 +1,189 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Onderwerp toevoegen",
+        "description": "Voeg een nieuw onderwerp toe om bij te houden.",
+        "data": {
+          "name": "Naam",
+          "icon": "Icoon"
+        },
+        "data_description": {
+          "name": "Een korte omschrijving voor dit onderwerp, bijv. 'Tandenborstel vervangen'.",
+          "icon": "Icoon getoond op de apparaatkaart."
+        }
+      }
+    },
+    "error": {
+      "name_required": "Naam mag niet leeg zijn."
+    },
+    "abort": {
+      "already_configured": "Er bestaat al een onderwerp met deze naam."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Onderwerp configureren",
+        "description": "Wat wil je doen?",
+        "data": {
+          "action": "Actie"
+        }
+      },
+      "topic": {
+        "title": "Naam & icoon aanpassen",
+        "data": {
+          "name": "Naam",
+          "icon": "Icoon"
+        },
+        "data_description": {
+          "name": "Hernoem dit onderwerp.",
+          "icon": "Wijzig het icoon op de apparaatkaart."
+        }
+      },
+      "history": {
+        "title": "Geschiedenis beheren",
+        "description": "Voeg gebeurtenissen toe, wijzig ze, of verwijder ze.",
+        "data": {
+          "action": "Actie"
+        }
+      },
+      "history_add": {
+        "title": "Gebeurtenis toevoegen",
+        "data": {
+          "datetime": "Datum & tijd",
+          "note": "Notitie"
+        }
+      },
+      "history_edit": {
+        "title": "Gebeurtenis wijzigen — selecteer gebeurtenis",
+        "data": {
+          "event_id": "Gebeurtenis"
+        }
+      },
+      "history_edit_form": {
+        "title": "Gebeurtenis wijzigen",
+        "data": {
+          "datetime": "Datum & tijd",
+          "note": "Notitie"
+        }
+      },
+      "history_delete": {
+        "title": "Gebeurtenis verwijderen — selecteer gebeurtenis",
+        "data": {
+          "event_id": "Gebeurtenis"
+        }
+      },
+      "history_delete_confirm": {
+        "title": "Verwijdering bevestigen",
+        "description": "Weet je zeker dat je **{event_label}** wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
+        "data": {
+          "confirm": "Ja, verwijder deze gebeurtenis"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Naam mag niet leeg zijn."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "days_ago": {
+        "name": "Dagen geleden"
+      },
+      "avg_interval": {
+        "name": "Mediane tussenpoos"
+      },
+      "predicted_next": {
+        "name": "Verwacht volgende"
+      },
+      "last_time": {
+        "name": "Laatste keer"
+      }
+    },
+    "button": {
+      "log_now": {
+        "name": "Nu registreren"
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_entity": {
+      "message": "Geen Last Time Tracker-onderwerp gevonden voor deze entiteit."
+    },
+    "unknown_device": {
+      "message": "Geen Last Time Tracker-onderwerp gevonden voor dit apparaat."
+    },
+    "no_topics_configured": {
+      "message": "Er zijn nog geen Last Time Tracker-onderwerpen geconfigureerd."
+    },
+    "topic_already_exists": {
+      "message": "Er bestaat al een onderwerp met deze naam."
+    },
+    "event_not_found": {
+      "message": "De opgegeven gebeurtenis is niet gevonden in de geschiedenis van dit onderwerp."
+    }
+  },
+  "services": {
+    "log_event": {
+      "name": "Gebeurtenis registreren",
+      "description": "Registreer een nieuwe gebeurtenis voor een Last Time Tracker-onderwerp.",
+      "fields": {
+        "note": {
+          "name": "Notitie",
+          "description": "Optionele notitie bij deze gebeurtenis."
+        },
+        "date": {
+          "name": "Datum & tijd",
+          "description": "Datum en tijd van de gebeurtenis. Standaard nu, indien weggelaten."
+        }
+      }
+    },
+    "delete_last_event": {
+      "name": "Laatste gebeurtenis verwijderen",
+      "description": "Verwijdert de meest recent geregistreerde gebeurtenis voor een Last Time Tracker-onderwerp."
+    },
+    "add_topic": {
+      "name": "Onderwerp toevoegen",
+      "description": "Maak een nieuw Last Time Tracker-onderwerp aan.",
+      "fields": {
+        "name": {
+          "name": "Naam",
+          "description": "De naam van het nieuwe onderwerp, bijv. 'Tandenborstel vervangen'."
+        },
+        "icon": {
+          "name": "Icoon",
+          "description": "Optioneel icoon voor het onderwerp. Standaard mdi:clock-check."
+        }
+      }
+    },
+    "edit_event": {
+      "name": "Gebeurtenis wijzigen",
+      "description": "Wijzig een bestaande gebeurtenis aan de hand van zijn UUID.",
+      "fields": {
+        "event_id": {
+          "name": "Gebeurtenis-ID",
+          "description": "De UUID van de te wijzigen gebeurtenis (zichtbaar in de geschiedenis-attributen)."
+        },
+        "date": {
+          "name": "Datum & tijd",
+          "description": "Nieuwe datum en tijd voor de gebeurtenis."
+        },
+        "note": {
+          "name": "Notitie",
+          "description": "Nieuwe notitie voor de gebeurtenis."
+        }
+      }
+    },
+    "delete_event": {
+      "name": "Gebeurtenis verwijderen",
+      "description": "Verwijder een specifieke gebeurtenis aan de hand van zijn UUID.",
+      "fields": {
+        "event_id": {
+          "name": "Gebeurtenis-ID",
+          "description": "De UUID van de te verwijderen gebeurtenis (zichtbaar in de geschiedenis-attributen)."
+        }
+      }
+    }
+  }
+}

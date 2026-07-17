@@ -1,0 +1,128 @@
+rules:
+  # Bronze
+  config-flow: done
+  appropriate-polling:
+    status: exempt
+    comment: Push-based via a dispatcher signal fired whenever a topic's history changes, no polling.
+  brands:
+    status: todo
+    comment: >
+      No local brand/ folder yet -- needs icon.png (256x256, transparent
+      background) at minimum, icon@2x.png recommended. Real artwork needed,
+      not something to fabricate.
+  common-modules: done
+  config-flow-test-coverage:
+    status: todo
+    comment: No test suite exists in this project at all (no tests/ directory).
+  dependency-transparency:
+    status: done
+    comment: No external dependencies (manifest.json requirements is empty).
+  docs-actions:
+    status: done
+    comment: All five services documented in strings.json/translations, with per-field descriptions and a services.yaml with proper target/selector definitions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name:
+    status: done
+    comment: _attr_has_entity_name = True on both the shared sensor base class and the button; device-merged so the device's own name is the prefix.
+  runtime-data:
+    status: todo
+    comment: >
+      Shared state (the LastTimeTrackerData store instance, entity_map) is
+      kept in hass.data[DOMAIN] rather than ConfigEntry.runtime_data. There
+      genuinely is shared state to store here (unlike a fully stateless
+      integration), so this is a real gap, not exempt -- migrating touches
+      __init__.py, sensor.py, button.py, services.py, and config_flow.py,
+      so treated as a separate follow-up rather than folded into this pass.
+  test-before-configure:
+    status: exempt
+    comment: The config flow only collects a name/icon for a new topic -- no external connection to validate.
+  test-before-setup:
+    status: exempt
+    comment: No external device/connection to validate.
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters:
+    status: exempt
+    comment: Installation only requires a name and an optional icon -- no host/token/device parameters to document.
+  entity-unavailable:
+    status: exempt
+    comment: No external device/data source that can go unavailable -- entities are always available, returning None/empty state until enough history exists.
+  integration-owner: done
+  log-when-unavailable:
+    status: exempt
+    comment: Same reasoning as entity-unavailable -- nothing ever transitions to unavailable.
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: No authentication needed.
+  test-coverage:
+    status: todo
+    comment: Blocked on the same missing test suite as config-flow-test-coverage above.
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: Nothing to discover -- topics are user-created software constructs, not devices on the network.
+  discovery-update-info:
+    status: exempt
+    comment: Same reason as discovery.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices:
+    status: exempt
+    comment: Topic-agnostic by design -- tracks whatever the user names, not a fixed device compatibility list.
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: One static device per config entry (topic), nothing added/removed at runtime automatically.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: exempt
+    comment: All four sensors plus the button are core to a topic's purpose -- nothing noisy/optional to disable by default.
+  entity-translations: done
+  exception-translations: done
+  icon-translations:
+    status: todo
+    comment: >
+      Icons are hardcoded via _attr_icon per sensor (e.g. mdi:calendar-clock)
+      instead of an icons.json. LastTimeSensor/LogNowButton's icon is
+      user-configurable per topic though, so only the three fixed-icon
+      sensors (Days ago, Median interval, Predicted next) are real
+      candidates for the migration.
+  reconfiguration-flow:
+    status: done
+    comment: The options flow's "topic" step already lets the user change name/icon (the only setup parameters) without deleting and recreating the integration entry.
+  repair-issues:
+    status: exempt
+    comment: No external entity/device reference that can silently disappear -- all state is self-contained in this integration's own storage.
+  stale-devices:
+    status: exempt
+    comment: One static device per config entry, never created dynamically.
+
+  # Platinum
+  async-dependency:
+    status: exempt
+    comment: No external dependency (empty requirements list).
+  inject-websession:
+    status: exempt
+    comment: No aiohttp client of our own -- same reason as async-dependency.
+  strict-typing:
+    status: todo
+    comment: >
+      Code is already reasonably typed (modern dict[...]/list/X | None
+      generics throughout), but no mypy step exists in CI to enforce/verify
+      it (no test.yml, unlike fraimic/notify-dashboard).
