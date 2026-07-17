@@ -1,7 +1,7 @@
 """Config flow for Last Time Tracker."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import voluptuous as vol
 
@@ -22,6 +22,7 @@ from homeassistant.helpers.selector import (
 from homeassistant.util import dt as dt_util, slugify
 
 from .const import CONF_ICON, DEFAULT_ICON, DOMAIN
+from .data import ensure_utc, topic_icon, topic_name
 
 # Schema used by both config and options topic step
 TOPIC_SCHEMA = vol.Schema({
@@ -49,15 +50,31 @@ def _format_event_label(event: dict) -> str:
     """Format a history event for display in a dropdown (local time)."""
     raw = event.get("datetime", "")
     try:
-        dt = datetime.fromisoformat(raw)
-        if not dt.tzinfo:
-            dt = dt.replace(tzinfo=timezone.utc)
-        dt_local = dt_util.as_local(dt)
+        dt_local = dt_util.as_local(ensure_utc(datetime.fromisoformat(raw)))
         date_str = dt_local.strftime("%Y-%m-%d %H:%M")
     except ValueError:
         date_str = raw[:16]
     note = event.get("note", "")
-    return f"{date_str} — {note}" if note else date_str
+    return f"{date_str} ({note})" if note else date_str
+
+
+def _parse_form_datetime(user_input: dict) -> tuple[datetime, str]:
+    """Parse a DateTimeSelector value plus its optional note.
+
+    A naive value (no tzinfo) comes from the picker showing local time
+    with no offset, so it's interpreted as local, not UTC (unlike
+    ensure_utc's assumption, which is for values that are already
+    internally-generated UTC, e.g. when re-parsing a stored event).
+    Attach the local zone directly rather than going through
+    dt_util.as_local(), which assumes a *naive* input is already UTC
+    (the opposite of what's needed here) and would otherwise leave the
+    value unchanged instead of converting it.
+    """
+    raw = user_input["datetime"]
+    dt = datetime.fromisoformat(raw) if isinstance(raw, str) else raw
+    if not dt.tzinfo:
+        dt = dt_util.as_utc(dt.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE))
+    return dt, user_input.get("note", "")
 
 
 class LastTimeTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -75,7 +92,7 @@ class LastTimeTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step — from UI or from service."""
+        """Handle the initial step, from UI or from service."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -169,16 +186,8 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
                 }
                 return await self.async_step_init()
 
-        current_name = (
-            (self._pending_options or {}).get("name")
-            or self.config_entry.options.get("name")
-            or self.config_entry.data["name"]
-        )
-        current_icon = (
-            (self._pending_options or {}).get(CONF_ICON)
-            or self.config_entry.options.get(CONF_ICON)
-            or self.config_entry.data.get(CONF_ICON, DEFAULT_ICON)
-        )
+        current_name = (self._pending_options or {}).get("name") or topic_name(self.config_entry)
+        current_icon = (self._pending_options or {}).get(CONF_ICON) or topic_icon(self.config_entry)
 
         return self.async_show_form(
             step_id="topic",
@@ -222,11 +231,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
     ) -> ConfigFlowResult:
         """Add a new event manually."""
         if user_input is not None:
-            raw = user_input["datetime"]
-            dt = datetime.fromisoformat(raw) if isinstance(raw, str) else raw
-            if not dt.tzinfo:
-                dt = dt_util.as_utc(dt_util.as_local(dt))
-            note: str = user_input.get("note", "")
+            dt, note = _parse_form_datetime(user_input)
             data = self.hass.data[DOMAIN]["data"]
             await data.async_log_event(self.config_entry.entry_id, dt, note)
             return await self.async_step_history()
@@ -240,7 +245,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
                         TextSelectorConfig(type=TextSelectorType.TEXT)
                     ),
                 }),
-                {"datetime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")},
+                {"datetime": dt_util.utcnow().strftime("%Y-%m-%d %H:%M:%S")},
             ),
         )
 
@@ -248,10 +253,10 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
     # Edit event                                                           #
     # ------------------------------------------------------------------ #
 
-    async def async_step_history_edit(
-        self, user_input: dict | None = None
+    async def _step_pick_event(
+        self, user_input: dict | None, step_id: str, next_step: str
     ) -> ConfigFlowResult:
-        """Pick which event to edit."""
+        """Shared "pick an event from a dropdown" step for edit/delete."""
         history = self.hass.data[DOMAIN]["data"].get_history(self.config_entry.entry_id)
         if not history:
             return await self.async_step_history()
@@ -261,7 +266,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
             if not event_id:
                 return await self.async_step_history()
             self._selected_event_id = event_id
-            return await self.async_step_history_edit_form()
+            return await getattr(self, f"async_step_{next_step}")()
 
         options = [
             SelectOptionDict(value=e["id"], label=_format_event_label(e))
@@ -269,7 +274,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
         ]
 
         return self.async_show_form(
-            step_id="history_edit",
+            step_id=step_id,
             data_schema=vol.Schema({
                 vol.Required("event_id"): SelectSelector(SelectSelectorConfig(
                     options=options,
@@ -278,6 +283,12 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
                 )),
             }),
         )
+
+    async def async_step_history_edit(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
+        """Pick which event to edit."""
+        return await self._step_pick_event(user_input, "history_edit", "history_edit_form")
 
     async def async_step_history_edit_form(
         self, user_input: dict | None = None
@@ -294,21 +305,14 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            raw = user_input["datetime"]
-            dt = datetime.fromisoformat(raw) if isinstance(raw, str) else raw
-            if not dt.tzinfo:
-                dt = dt_util.as_utc(dt_util.as_local(dt))
-            note: str = user_input.get("note", "")
+            dt, note = _parse_form_datetime(user_input)
             await data.async_edit_event(
                 self.config_entry.entry_id, self._selected_event_id, dt, note
             )
             self._selected_event_id = None
             return await self.async_step_history()
 
-        dt = datetime.fromisoformat(event["datetime"])
-        if not dt.tzinfo:
-            dt = dt.replace(tzinfo=timezone.utc)
-        dt_str = dt_util.as_local(dt).strftime("%Y-%m-%d %H:%M:%S")
+        dt_str = dt_util.as_local(ensure_utc(datetime.fromisoformat(event["datetime"]))).strftime("%Y-%m-%d %H:%M:%S")
 
         return self.async_show_form(
             step_id="history_edit_form",
@@ -332,32 +336,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict | None = None
     ) -> ConfigFlowResult:
         """Pick which event to delete."""
-        history = self.hass.data[DOMAIN]["data"].get_history(self.config_entry.entry_id)
-        if not history:
-            return await self.async_step_history()
-
-        if user_input is not None:
-            event_id = user_input.get("event_id")
-            if not event_id:
-                return await self.async_step_history()
-            self._selected_event_id = event_id
-            return await self.async_step_history_delete_confirm()
-
-        options = [
-            SelectOptionDict(value=e["id"], label=_format_event_label(e))
-            for e in history if e.get("id")
-        ]
-
-        return self.async_show_form(
-            step_id="history_delete",
-            data_schema=vol.Schema({
-                vol.Required("event_id"): SelectSelector(SelectSelectorConfig(
-                    options=options,
-                    mode=SelectSelectorMode.LIST,
-                    translation_key="event_picker",
-                )),
-            }),
-        )
+        return await self._step_pick_event(user_input, "history_delete", "history_delete_confirm")
 
     async def async_step_history_delete_confirm(
         self, user_input: dict | None = None

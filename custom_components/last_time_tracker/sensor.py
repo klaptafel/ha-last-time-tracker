@@ -1,7 +1,7 @@
 """Sensor platform for Last Time Tracker."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from statistics import median
 
 from homeassistant.components.sensor import (
@@ -13,11 +13,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util
 
-from .const import CONF_ICON, DEFAULT_ICON, DISPATCHER_UPDATED, DOMAIN
+from .const import DISPATCHER_UPDATED, DOMAIN
+from .data import build_device_info, ensure_utc, topic_icon, topic_name
 
 PARALLEL_UPDATES = 0
 
@@ -30,8 +31,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up sensors for a topic."""
-    name: str = entry.options.get("name") or entry.data["name"]
-    icon: str = entry.options.get(CONF_ICON) or entry.data.get(CONF_ICON, DEFAULT_ICON)
+    name = topic_name(entry)
+    icon = topic_icon(entry)
 
     async_add_entities([
         LastTimeSensor(hass, entry, name, icon),
@@ -43,8 +44,7 @@ async def async_setup_entry(
 
 def _parse_dt(raw: str) -> datetime:
     """Parse an ISO datetime string, ensuring timezone info is present."""
-    dt = datetime.fromisoformat(raw)
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return ensure_utc(datetime.fromisoformat(raw))
 
 
 def _median_interval_days(history: list) -> float | None:
@@ -68,6 +68,10 @@ class LastTimeTrackerBaseSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_should_poll = False
+    # Set by subclasses whose displayed value depends on "today"/"now" and
+    # so needs an extra refresh at local midnight, not just on dispatcher
+    # updates (e.g. "days ago" increments even with no new event logged).
+    _needs_midnight_refresh = False
 
     def __init__(
         self,
@@ -77,12 +81,7 @@ class LastTimeTrackerBaseSensor(SensorEntity):
     ) -> None:
         self.hass = hass
         self._entry_id = entry.entry_id
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=name,
-            manufacturer="Last Time Tracker",
-            model="Topic",
-        )
+        self._attr_device_info = build_device_info(entry.entry_id, name)
 
     def _get_history(self) -> list:
         return self.hass.data[DOMAIN]["data"].get_history(self._entry_id)
@@ -105,12 +104,26 @@ class LastTimeTrackerBaseSensor(SensorEntity):
             )
         )
         self.hass.data[DOMAIN]["entity_map"][self.entity_id] = self._entry_id
+        if self._needs_midnight_refresh:
+            self.async_on_remove(
+                async_track_time_change(
+                    self.hass,
+                    self._handle_midnight,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                )
+            )
 
     async def async_will_remove_from_hass(self) -> None:
         self.hass.data[DOMAIN]["entity_map"].pop(self.entity_id, None)
 
     @callback
     def _handle_update(self) -> None:
+        self.async_write_ha_state()
+
+    @callback
+    def _handle_midnight(self, now=None) -> None:
         self.async_write_ha_state()
 
 
@@ -149,6 +162,7 @@ class DaysAgoSensor(LastTimeTrackerBaseSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "days_ago"
     _attr_icon = "mdi:calendar-clock"
+    _needs_midnight_refresh = True  # the day count increments at midnight
 
     def __init__(self, hass, entry, name) -> None:
         super().__init__(hass, entry, name)
@@ -159,26 +173,12 @@ class DaysAgoSensor(LastTimeTrackerBaseSensor):
         history = self._get_history()
         if not history:
             return None
-        last_date = _parse_dt(history[0]["datetime"]).date()
-        today = datetime.now(timezone.utc).date()
+        # Both sides in local time, matching the local-midnight refresh
+        # above: comparing a UTC date against a local one would make the
+        # count flip a few hours early/late for any zone not on UTC+0.
+        last_date = dt_util.as_local(_parse_dt(history[0]["datetime"])).date()
+        today = dt_util.now().date()
         return (today - last_date).days
-
-    async def async_added_to_hass(self) -> None:
-        """Also update at midnight when the day count increments."""
-        await super().async_added_to_hass()
-        self.async_on_remove(
-            async_track_time_change(
-                self.hass,
-                self._handle_midnight,
-                hour=0,
-                minute=0,
-                second=0,
-            )
-        )
-
-    @callback
-    def _handle_midnight(self, now=None) -> None:
-        self.async_write_ha_state()
 
 
 class AvgIntervalSensor(LastTimeTrackerBaseSensor):
@@ -207,6 +207,7 @@ class PredictedNextSensor(LastTimeTrackerBaseSensor):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_translation_key = "predicted_next"
     _attr_icon = "mdi:calendar-arrow-right"
+    _needs_midnight_refresh = True  # relative display should stay current
 
     def __init__(self, hass, entry, name) -> None:
         super().__init__(hass, entry, name)
@@ -220,20 +221,3 @@ class PredictedNextSensor(LastTimeTrackerBaseSensor):
             return None
         last_dt = _parse_dt(history[0]["datetime"])
         return last_dt + timedelta(days=interval)
-
-    async def async_added_to_hass(self) -> None:
-        """Also update at midnight so relative display stays current."""
-        await super().async_added_to_hass()
-        self.async_on_remove(
-            async_track_time_change(
-                self.hass,
-                self._handle_midnight,
-                hour=0,
-                minute=0,
-                second=0,
-            )
-        )
-
-    @callback
-    def _handle_midnight(self, now=None) -> None:
-        self.async_write_ha_state()

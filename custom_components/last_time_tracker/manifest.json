@@ -1,7 +1,7 @@
 {
   "domain": "last_time_tracker",
   "name": "Last Time Tracker",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "codeowners": ["@klaptafel"],
   "config_flow": true,
   "dependencies": [],

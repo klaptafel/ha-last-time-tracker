@@ -56,7 +56,7 @@
         }
       },
       "history_edit": {
-        "title": "Edit event \u2014 select event",
+        "title": "Edit event: select event",
         "data": {
           "event_id": "Event"
         }
@@ -69,7 +69,7 @@
         }
       },
       "history_delete": {
-        "title": "Delete event \u2014 select event",
+        "title": "Delete event: select event",
         "data": {
           "event_id": "Event"
         }

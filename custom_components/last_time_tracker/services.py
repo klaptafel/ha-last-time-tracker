@@ -1,7 +1,7 @@
 """Service registration for Last Time Tracker."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import voluptuous as vol
 
@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import (
@@ -22,7 +23,15 @@ from .const import (
     SERVICE_EDIT_EVENT,
     SERVICE_LOG_EVENT,
 )
-from .data import LastTimeTrackerData
+from .data import LastTimeTrackerData, topic_name
+
+
+def _raise_event_not_found(event_id: str) -> None:
+    raise ServiceValidationError(
+        f"Event '{event_id}' not found.",
+        translation_domain=DOMAIN,
+        translation_key="event_not_found",
+    )
 
 
 def _resolve_entry_ids(hass: HomeAssistant, call: ServiceCall) -> set[str]:
@@ -49,8 +58,9 @@ def _resolve_entry_ids(hass: HomeAssistant, call: ServiceCall) -> set[str]:
                 translation_key="unknown_entity",
             )
 
+    device_registry = dr.async_get(hass)
     for device_id in cv.ensure_list(call.data.get("device_id", [])):
-        device = dr.async_get(hass).async_get(device_id)
+        device = device_registry.async_get(device_id)
         if not device:
             raise ServiceValidationError(
                 f"Device '{device_id}' not found",
@@ -76,8 +86,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         # Check for duplicate
         for entry in hass.config_entries.async_entries(DOMAIN):
-            existing_name = entry.options.get("name") or entry.data.get("name", "")
-            if slugify(existing_name) == unique_id:
+            if slugify(topic_name(entry)) == unique_id:
                 raise ServiceValidationError(
                     f"A topic named '{name}' already exists.",
                     translation_domain=DOMAIN,
@@ -93,7 +102,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_log_event(call: ServiceCall) -> None:
         note: str = call.data.get("note", "")
         date: datetime | None = call.data.get("date")
-        dt = date if date else datetime.now(timezone.utc)
+        dt = date if date else dt_util.utcnow()
 
         data: LastTimeTrackerData = hass.data[DOMAIN]["data"]
         for entry_id in _resolve_entry_ids(hass, call):
@@ -139,18 +148,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def handle_edit_event(call: ServiceCall) -> None:
         event_id: str = call.data["event_id"]
         date: datetime | None = call.data.get("date")
-        dt = date if date else datetime.now(timezone.utc)
+        dt = date if date else dt_util.utcnow()
         note: str = call.data.get("note", "")
 
         data: LastTimeTrackerData = hass.data[DOMAIN]["data"]
         for entry_id in _resolve_entry_ids(hass, call):
             found = await data.async_edit_event(entry_id, event_id, dt, note)
             if not found:
-                raise ServiceValidationError(
-                    f"Event '{event_id}' not found.",
-                    translation_domain=DOMAIN,
-                    translation_key="event_not_found",
-                )
+                _raise_event_not_found(event_id)
 
     async def handle_delete_event(call: ServiceCall) -> None:
         event_id: str = call.data["event_id"]
@@ -158,11 +163,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for entry_id in _resolve_entry_ids(hass, call):
             found = await data.async_delete_event_by_id(entry_id, event_id)
             if not found:
-                raise ServiceValidationError(
-                    f"Event '{event_id}' not found.",
-                    translation_domain=DOMAIN,
-                    translation_key="event_not_found",
-                )
+                _raise_event_not_found(event_id)
 
     hass.services.async_register(
         DOMAIN,

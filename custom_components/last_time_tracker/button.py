@@ -1,16 +1,14 @@
 """Button platform for Last Time Tracker."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
-from .const import CONF_ICON, DEFAULT_ICON, DOMAIN
-from .data import LastTimeTrackerData
+from .const import DOMAIN
+from .data import LastTimeTrackerData, build_device_info, topic_icon, topic_name
 
 PARALLEL_UPDATES = 0
 
@@ -21,9 +19,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up button for a topic."""
-    name: str = entry.options.get("name") or entry.data["name"]
-    icon: str = entry.options.get(CONF_ICON) or entry.data.get(CONF_ICON, DEFAULT_ICON)
-    async_add_entities([LogNowButton(hass, entry, name, icon)])
+    async_add_entities([LogNowButton(hass, entry, topic_name(entry), topic_icon(entry))])
 
 
 class LogNowButton(ButtonEntity):
@@ -43,12 +39,9 @@ class LogNowButton(ButtonEntity):
         self._entry_id = entry.entry_id
         self._attr_unique_id = f"{entry.entry_id}_log_now"
         self._attr_icon = icon
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=name,
-        )
+        self._attr_device_info = build_device_info(entry.entry_id, name)
 
     async def async_press(self) -> None:
         """Log the current datetime without a note."""
         data: LastTimeTrackerData = self.hass.data[DOMAIN]["data"]
-        await data.async_log_event(self._entry_id, datetime.now(timezone.utc))
+        await data.async_log_event(self._entry_id, dt_util.utcnow())

@@ -56,7 +56,7 @@
         }
       },
       "history_edit": {
-        "title": "Gebeurtenis wijzigen — selecteer gebeurtenis",
+        "title": "Gebeurtenis wijzigen: selecteer gebeurtenis",
         "data": {
           "event_id": "Gebeurtenis"
         }
@@ -69,7 +69,7 @@
         }
       },
       "history_delete": {
-        "title": "Gebeurtenis verwijderen — selecteer gebeurtenis",
+        "title": "Gebeurtenis verwijderen: selecteer gebeurtenis",
         "data": {
           "event_id": "Gebeurtenis"
         }
