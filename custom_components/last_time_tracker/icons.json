@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "sensor": {
+      "days_ago": {
+        "default": "mdi:calendar-clock"
+      },
+      "avg_interval": {
+        "default": "mdi:chart-timeline-variant"
+      },
+      "predicted_next": {
+        "default": "mdi:calendar-arrow-right"
+      }
+    }
+  }
+}

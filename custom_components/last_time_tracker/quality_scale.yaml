@@ -29,14 +29,18 @@ rules:
     status: done
     comment: _attr_has_entity_name = True on both the shared sensor base class and the button; device-merged so the device's own name is the prefix.
   runtime-data:
-    status: todo
-    comment: >
-      Shared state (the LastTimeTrackerData store instance, entity_map) is
-      kept in hass.data[DOMAIN] rather than ConfigEntry.runtime_data. There
-      genuinely is shared state to store here (unlike a fully stateless
-      integration), so this is a real gap, not exempt -- migrating touches
-      __init__.py, sensor.py, button.py, services.py, and config_flow.py,
-      so treated as a separate follow-up rather than folded into this pass.
+    status: done
+    comment: >-
+      Every topic's own config entry now carries entry.runtime_data, pointing
+      at the one shared LastTimeTrackerData instance (built once in
+      async_setup, since it's a single Store covering every topic, not one
+      per entry) -- sensor.py/button.py/diagnostics.py/config_flow.py's
+      options flow all read it from there instead of hass.data[DOMAIN].
+      entity_map stays on hass.data[DOMAIN] deliberately: services.py's own
+      cross-entry target resolution (_resolve_entry_ids) has no single entry
+      of its own to hang a lookup off in the first place, which is exactly
+      what entity_map answers -- a genuine domain-wide singleton, not a
+      per-entry object runtime_data was designed to replace.
   test-before-configure:
     status: exempt
     comment: The config flow only collects a name/icon for a new topic -- no external connection to validate.
@@ -96,13 +100,12 @@ rules:
   entity-translations: done
   exception-translations: done
   icon-translations:
-    status: todo
-    comment: >
-      Icons are hardcoded via _attr_icon per sensor (e.g. mdi:calendar-clock)
-      instead of an icons.json. LastTimeSensor/LogNowButton's icon is
-      user-configurable per topic though, so only the three fixed-icon
-      sensors (Days ago, Median interval, Predicted next) are real
-      candidates for the migration.
+    status: done
+    comment: >-
+      The three fixed-icon sensors (Days ago, Median interval, Predicted
+      next) now source their icon from icons.json via _attr_translation_key.
+      LastTimeSensor/LogNowButton keep _attr_icon: their icon is user-
+      configurable per topic, not a fixed default to translate.
   reconfiguration-flow:
     status: done
     comment: The options flow's "topic" step already lets the user change name/icon (the only setup parameters) without deleting and recreating the integration entry.

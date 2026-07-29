@@ -187,3 +187,16 @@ class LastTimeTrackerData:
         if entry_id in self._history:
             del self._history[entry_id]
             await self._store.async_save(self._history)
+
+
+# One shared LastTimeTrackerData instance backs every topic's own config
+# entry (a single Store, keyed internally by entry_id -- see the class's own
+# docstring), so every entry's runtime_data ends up pointing at the exact
+# same object, not one each. Unlike a typical single-purpose ConfigEntry
+# type alias, this is still the right tool here: entity_map/services.py's
+# own cross-entry target resolution (_resolve_entry_ids) has no single entry
+# to hang off at all, and stays on hass.data[DOMAIN] for that reason (see
+# __init__.py's own comments) -- this alias only helps the callers (sensor.py,
+# button.py, diagnostics.py, config_flow.py's options flow) that already have
+# one specific entry in hand.
+LastTimeTrackerConfigEntry = ConfigEntry[LastTimeTrackerData]

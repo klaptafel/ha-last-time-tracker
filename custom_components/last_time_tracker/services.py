@@ -37,13 +37,17 @@ def _raise_event_not_found(event_id: str) -> None:
 def _resolve_entry_ids(hass: HomeAssistant, call: ServiceCall) -> set[str]:
     """Resolve entity_ids and device_ids from call.data to entry_ids."""
     entry_ids: set[str] = set()
-    domain_data = hass.data.get(DOMAIN, {})
-    if "data" not in domain_data:
+    # The shared LastTimeTrackerData singleton now exists from async_setup
+    # onward regardless of how many topics exist (see __init__.py's own
+    # comments), so its mere presence in hass.data[DOMAIN] no longer answers
+    # "is at least one topic configured" -- that has to be asked directly.
+    if not hass.config_entries.async_entries(DOMAIN):
         raise ServiceValidationError(
             "No Last Time Tracker topics are configured yet.",
             translation_domain=DOMAIN,
             translation_key="no_topics_configured",
         )
+    domain_data = hass.data[DOMAIN]
     entity_map: dict = domain_data["entity_map"]
     data: LastTimeTrackerData = domain_data["data"]
 

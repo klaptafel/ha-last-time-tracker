@@ -232,7 +232,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
         """Add a new event manually."""
         if user_input is not None:
             dt, note = _parse_form_datetime(user_input)
-            data = self.hass.data[DOMAIN]["data"]
+            data = self.config_entry.runtime_data
             await data.async_log_event(self.config_entry.entry_id, dt, note)
             return await self.async_step_history()
 
@@ -257,7 +257,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict | None, step_id: str, next_step: str
     ) -> ConfigFlowResult:
         """Shared "pick an event from a dropdown" step for edit/delete."""
-        history = self.hass.data[DOMAIN]["data"].get_history(self.config_entry.entry_id)
+        history = self.config_entry.runtime_data.get_history(self.config_entry.entry_id)
         if not history:
             return await self.async_step_history()
 
@@ -294,7 +294,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict | None = None
     ) -> ConfigFlowResult:
         """Edit the selected event."""
-        data = self.hass.data[DOMAIN]["data"]
+        data = self.config_entry.runtime_data
         history = data.get_history(self.config_entry.entry_id)
         event = next(
             (e for e in history if e.get("id") == self._selected_event_id), None
@@ -342,7 +342,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict | None = None
     ) -> ConfigFlowResult:
         """Confirm deletion of the selected event."""
-        history = self.hass.data[DOMAIN]["data"].get_history(self.config_entry.entry_id)
+        history = self.config_entry.runtime_data.get_history(self.config_entry.entry_id)
         event = next(
             (e for e in history if e.get("id") == self._selected_event_id), None
         )
@@ -351,7 +351,7 @@ class LastTimeTrackerOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             if user_input.get("confirm"):
-                await self.hass.data[DOMAIN]["data"].async_delete_event_by_id(
+                await self.config_entry.runtime_data.async_delete_event_by_id(
                     self.config_entry.entry_id, self._selected_event_id
                 )
             self._selected_event_id = None

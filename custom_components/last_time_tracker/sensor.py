@@ -9,7 +9,6 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -18,7 +17,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from .const import DISPATCHER_UPDATED, DOMAIN
-from .data import build_device_info, ensure_utc, topic_icon, topic_name
+from .data import LastTimeTrackerConfigEntry, build_device_info, ensure_utc, topic_icon, topic_name
 
 PARALLEL_UPDATES = 0
 
@@ -27,7 +26,7 @@ MIN_EVENTS_FOR_PREDICTION = 2
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: LastTimeTrackerConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up sensors for a topic."""
@@ -76,15 +75,16 @@ class LastTimeTrackerBaseSensor(SensorEntity):
     def __init__(
         self,
         hass: HomeAssistant,
-        entry: ConfigEntry,
+        entry: LastTimeTrackerConfigEntry,
         name: str,
     ) -> None:
         self.hass = hass
         self._entry_id = entry.entry_id
+        self._data = entry.runtime_data
         self._attr_device_info = build_device_info(entry.entry_id, name)
 
     def _get_history(self) -> list:
-        return self.hass.data[DOMAIN]["data"].get_history(self._entry_id)
+        return self._data.get_history(self._entry_id)
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to dispatcher updates and register as a valid service target.
@@ -161,7 +161,6 @@ class DaysAgoSensor(LastTimeTrackerBaseSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "days_ago"
-    _attr_icon = "mdi:calendar-clock"
     _needs_midnight_refresh = True  # the day count increments at midnight
 
     def __init__(self, hass, entry, name) -> None:
@@ -189,7 +188,6 @@ class AvgIntervalSensor(LastTimeTrackerBaseSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_translation_key = "avg_interval"
-    _attr_icon = "mdi:chart-timeline-variant"
 
     def __init__(self, hass, entry, name) -> None:
         super().__init__(hass, entry, name)
@@ -206,7 +204,6 @@ class PredictedNextSensor(LastTimeTrackerBaseSensor):
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_translation_key = "predicted_next"
-    _attr_icon = "mdi:calendar-arrow-right"
     _needs_midnight_refresh = True  # relative display should stay current
 
     def __init__(self, hass, entry, name) -> None:
