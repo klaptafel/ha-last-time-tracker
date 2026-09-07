@@ -71,9 +71,11 @@ def _resolve_entry_ids(hass: HomeAssistant, call: ServiceCall) -> set[str]:
                 translation_domain=DOMAIN,
                 translation_key="unknown_device",
             )
-        for entry_id in device.config_entries:
-            if data.has_entry(entry_id):
-                entry_ids.add(entry_id)
+        # Devices belong to exactly one config entry since HA Core 2026.8
+        # (device.config_entries is a deprecated compatibility shim now,
+        # removed in 2027.8); config_entry_id is the direct replacement.
+        if data.has_entry(device.config_entry_id):
+            entry_ids.add(device.config_entry_id)
 
     return entry_ids
 
